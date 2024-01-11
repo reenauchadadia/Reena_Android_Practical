@@ -13,6 +13,7 @@
         android:layout_marginVertical="@dimen/_8dp"
         android:layout_marginHorizontal="@dimen/_4dp"
         android:visibility="invisible"
+        android:scrollbars="vertical"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         tools:itemCount="10"
         tools:listitem="@layout/item_cat_image" />

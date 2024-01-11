@@ -2,6 +2,8 @@ package com.example.reena_android_practical.view
 
 import CatImageAdapter
 import android.os.Bundle
+import android.util.Log
+import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
@@ -9,6 +11,8 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.RecyclerView.LayoutManager
 import com.example.reena_android_practical.R
 import com.example.reena_android_practical.databinding.ActivityMainBinding
 import com.example.reena_android_practical.model.CatImageModel
@@ -25,18 +29,53 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var isGrid: Boolean = false;
     private var catImages: ArrayList<CatImageModel>? = ArrayList<CatImageModel>();
-
+    private var adapter: CatImageAdapter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
+        adapter = CatImageAdapter(catImages!!)
+        setupRecyclerView()
         fetchCatImages()
+        implementPagination()
+    }
+
+
+    private fun implementPagination() {
+
+        // Implement pagination
+        binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+
+                var layoutManager = if (isGrid) {
+                    recyclerView.layoutManager as GridLayoutManager
+                } else {
+                    recyclerView.layoutManager as LinearLayoutManager
+                }
+
+                val visibleItemCount = layoutManager.childCount
+                val totalItemCount = layoutManager.itemCount
+                val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
+
+//                Log.e("Visible::", "visibleItemCount: $visibleItemCount" )
+//                Log.e("Visible::", "totalItemCount: $totalItemCount" )
+//                Log.e("Visible::", "firstVisibleItemPosition: $firstVisibleItemPosition" )
+
+                if (visibleItemCount + firstVisibleItemPosition >= totalItemCount && firstVisibleItemPosition >= 0) {
+                    // Load more data when reaching the end of the list
+//                    Log.e("Visible::", "onScrolled Called: ")
+                    fetchCatImages()
+                }
+            }
+        })
     }
 
     private fun fetchCatImages() {
-        val call = common?.api_key?.let { APIClient.catApiService.getCatImages(it, 10) }
+        val call = common?.api_key?.let {
+            APIClient.catApiService.getCatImages(it, 10)
+        }
 
         call?.enqueue(object : Callback<ArrayList<CatImageModel>> {
             override fun onResponse(
@@ -45,8 +84,8 @@ class MainActivity : AppCompatActivity() {
             ) {
                 if (response.isSuccessful) {
                     val images = response.body() ?: ArrayList()
-                    catImages = images
-                    setupRecyclerView()
+                    catImages?.addAll(images)
+                    adapter?.notifyDataSetChanged()
                     binding.recyclerView.visibility = View.VISIBLE
                     binding.progressBar.visibility = View.GONE
                 } else {
@@ -61,7 +100,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        val adapter = CatImageAdapter(catImages!!)
+
         if (isGrid) {
             binding.recyclerView.layoutManager = GridLayoutManager(this, 2)
 
